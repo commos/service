@@ -1,4 +1,4 @@
-(defproject org.commos/service "0.1.0"
+(defproject org.commos/service "0.1.1"
   :description "commos service protocol and cache"
   :url "http://github.com/commos/service"
   :license {:name "Eclipse Public License"
