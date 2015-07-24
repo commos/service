@@ -96,8 +96,8 @@
                ch2 (chan)]
            (service/request combo-service [service1 0] ch1)
            (service/request combo-service [service2 0] ch2)
-           (is (= 0 (<! service1)))
-           (is (= 0 (<! service2)))
+           (is (= 0 (<! ch1)))
+           (is (= 0 (<! ch2)))
            ;; internal state:
            (is (= 1 (service/cancel combo-service ch1)))
            (is (= 0 (service/cancel combo-service ch2)))))))))

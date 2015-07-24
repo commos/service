@@ -216,12 +216,12 @@
   [k spec]
 
   as spec where k can be dispatched to a service via spec->service."
-  [spec->service]
+  [k->service]
   (let [services (atom {})]
     (reify
       IService
       (request [this [k spec] ch]
-        (if-let [service (spec->service spec)]
+        (if-let [service (k->service k)]
           (let [pipe (on-close-source ch #(swap! services dissoc ch))]
             (do (swap! services assoc ch [pipe service])
                 (request service spec ch)))
