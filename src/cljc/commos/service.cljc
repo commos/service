@@ -23,6 +23,9 @@
     "Asynchronously cancel the request associated with channel ch
     and close channel ch."))
 
+
+;; Cache
+
 (defn caching
   "Services that cache services must invoke them only with this
   wrapper."
@@ -203,3 +206,29 @@
               (recur subs
                      chs))))))
     cs))
+
+;; Combine
+
+(defn combine
+  "Wrapper to create one service from multiple services.
+  Requests can be made with
+
+  [k spec]
+
+  as spec where k can be dispatched to a service via spec->service."
+  [spec->service]
+  (let [services (atom {})]
+    (reify
+      IService
+      (request [this [k spec] ch]
+        (if-let [service (spec->service spec)]
+          (let [pipe (on-close-source ch #(swap! services dissoc ch))]
+            (do (swap! services assoc ch [pipe service])
+                (request service spec ch)))
+          (let [msg (str "Can't find service for " k)]
+            #?(:clj (throw (IllegalArgumentException. msg))
+                    :cljs (throw msg)))))
+      (cancel [this ch]
+        (let [[subscribed-ch service] (@services ch)]
+          (cancel service subscribed-ch)
+          (count (swap! services dissoc ch)))))))

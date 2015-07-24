@@ -78,3 +78,26 @@
          ;; rebuild before tap is in effect:
          (close! break)
          (is (= :cache (<! target)) "Cache forwarded"))))))
+
+(deftest it-combines
+  (let [ch-hold (chan)
+        service1 (-> {0 {:values [0
+                                  ch-hold]}}
+                     (dummy-service))
+        service2 (-> {0 {:values [0
+                                  ch-hold]}}
+                     (dummy-service))
+        combo-service (service/combine identity)
+        target (chan)]
+    (test-async
+     (test-within 1000
+       (go
+         (let [ch1 (chan)
+               ch2 (chan)]
+           (service/request combo-service [service1 0] ch1)
+           (service/request combo-service [service2 0] ch2)
+           (is (= 0 (<! service1)))
+           (is (= 0 (<! service2)))
+           ;; internal state:
+           (is (= 1 (service/cancel combo-service ch1)))
+           (is (= 0 (service/cancel combo-service ch2)))))))))
