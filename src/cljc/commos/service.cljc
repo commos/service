@@ -133,7 +133,7 @@
   (doto (chan)
     (on-close-pipe target on-close)))
 
-(defn cache
+(defn cacher
   "Transform a service into a cached service.  
 
   The cached service internally builds caches for equal request specs
