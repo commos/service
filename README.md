@@ -1,7 +1,9 @@
 # commos.service
 
-`[org.commos/service "0.1.1"]` provides the `IService` protocol, a
-generic service wrapper for caching and an auxilliary service combiner.
+`[org.commos/service "0.2.0"]` provides the `IService` protocol, an
+adapter for a fully customizable request/response/subscribe protocol
+on duplex streams, a wrapper for caching and an auxilliary service
+combiner.
 
 It is compatible with Clojure (v. 1.7.0), ClojureScript (v. 3308) and
 core.async (0.1.346.0-17112a-alpha).
