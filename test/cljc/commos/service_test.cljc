@@ -27,7 +27,7 @@
                                         ;; subs
                                  ]}}
                     (dummy-service)
-                    (service/cache (fn [_ v] v)))
+                    (service/cacher (fn [_ v] v)))
         target (memoize (fn [_] (chan)))]
     (service/request service 0 (target 0))
     (test-async
@@ -45,7 +45,7 @@
                                  break
                                  v-ch]}}
                     (dummy-service)
-                    (service/cache (fn [_ _] :cache)))
+                    (service/cacher (fn [_ _] :cache)))
         target (chan)]
     (service/request service 0 target)
     (test-async
@@ -65,8 +65,8 @@
                                  break
                                  v-ch]}}
                     (dummy-service)
-                    (service/cache (fn [_ _] :cache)
-                                   :forward :cache))
+                    (service/cacher (fn [_ _] :cache)
+                                    :forward :cache))
         target (chan)]
     (service/request service 0 target)
     (test-async
