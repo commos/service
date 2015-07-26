@@ -87,7 +87,7 @@
         service2 (-> {0 {:values [0
                                   ch-hold]}}
                      (dummy-service))
-        combo-service (service/combine identity)
+        combo-service (service/combiner identity)
         target (chan)]
     (test-async
      (test-within 1000

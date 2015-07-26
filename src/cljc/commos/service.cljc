@@ -209,7 +209,7 @@
 
 ;; Combine
 
-(defn combine
+(defn combiner
   "Wrapper to create one service from multiple services.
   Requests can be made with
 
