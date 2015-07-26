@@ -229,6 +229,7 @@
             #?(:clj (throw (IllegalArgumentException. msg))
                     :cljs (throw msg)))))
       (cancel [this ch]
-        (let [[subscribed-ch service] (@services ch)]
+        (when-let [[subscribed-ch service] (@services ch)]
           (cancel service subscribed-ch)
+          (close! subscribed-ch)
           (count (swap! services dissoc ch)))))))
