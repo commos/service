@@ -215,7 +215,7 @@
 
   [k spec]
 
-  as spec where k can be dispatched to a service via spec->service."
+  as spec where k can be dispatched to a service via k->service."
   [k->service]
   (let [services (atom {})]
     (reify
