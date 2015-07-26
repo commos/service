@@ -233,3 +233,97 @@
           (cancel service subscribed-ch)
           (close! subscribed-ch)
           (count (swap! services dissoc ch)))))))
+
+;; Adapter
+
+(defn- id-gen []
+  (let [id (atom 0)]
+    (fn gen-id []
+      (let [return (volatile! nil)]
+        (swap! id (fn [id]
+                    (vreset! return id)
+                    (inc id)))
+        @return))))
+
+(defn adapter
+  "Service that forwards and coordinates requests and responses.
+  
+  For each request a unique id is generated and added to the request
+  spec.  Matching messages from ch-in are asynchronously put onto the
+  corresponding channel.
+
+  request-fn is invoked with a request spec when a request is made.
+  cancel-fn is invoked with an id when a request is cancelled and
+  should be used to free resources. ch-in is a channel serving
+  responses.
+
+  Any following opts may be provided
+
+  :gen-id - Function of 0 args that generates a unique id on each
+  invocation.  Defaults to an incremental number generator starting at
+  0
+
+  :set-id - Function taking a request spec and an id, returning a new
+  request-spec.  Defaults to #(assoc %1 :id %2)
+
+  :get-id - Function returning the id of a response.  Defaults to :id
+
+  :final-msg? - Function returning whether a response is final or more
+  should be expected, e. g. in case of subscriptions.  Defaults to
+  returning constantly true.
+
+  :on-unexpected-dispatch - Function invoked with a response that is
+  not expected.  Note that unexpected responses need to be to
+  tolerated since cancellation is not synchronous, i. e. responses may
+  have been sent before cancellation has been communicated to the
+  origin.  Intended for debugging."
+  [request-fn cancel-fn ch-in & {:keys [gen-id set-id get-id final-msg?
+                                        on-unexpected-dispatch] :as opts}]
+  (let [;; Defaults
+        gen-id (or gen-id
+                   (id-gen))
+        set-id (or set-id
+                   #(assoc %1 :id %2))
+        get-id (or get-id :id)
+        on-unexpected-dispatch (or on-unexpected-dispatch
+                                   (constantly nil))
+        final-msg? (or final-msg?
+                       (constantly true))
+        ;; Store
+        expected (atom {})
+        add! (fn [id ch]
+               (swap! expected #(-> %
+                                    (assoc-in [:id->ch id] ch)
+                                    (assoc-in [:ch->id ch] id))))
+        remove! (fn [id ch]
+                  (swap! expected #(-> %
+                                       (update :ch->id dissoc ch)
+                                       (update :id->ch dissoc id))))
+        id->ch (fn [id]
+                 (get-in @expected [:id->ch id]))
+        ch->id (fn [ch]
+                 (get-in @expected [:ch->id ch]))]
+    (go-loop []
+      (when-some [msg (<! ch-in)]
+        (let [id (get-id msg)]
+          (if-let [ch (id->ch id)]
+            (do
+              (put! ch msg)
+              (when (final-msg? msg)
+                (remove! id ch)
+                (close! ch)))
+            (on-unexpected-dispatch msg)))
+        (recur)))
+    (reify
+      IService
+      (request [_ spec ch]
+        (let [id (gen-id)
+              spec (set-id spec id)]
+          (add! id ch)
+          (request-fn spec)))
+      (cancel [_ ch]
+        (when-let [id (ch->id ch)]
+          (close! ch)
+          (cancel-fn id)
+          (remove! id ch))
+        (count (:ch->id @expected))))))

@@ -10,6 +10,7 @@
                                                <! >!
                                                put!
                                                alts!
+                                               onto-chan
                                                pipe
                                                #?@(:clj [go go-loop])
                                                tap untap] :as a])
@@ -101,3 +102,18 @@
            ;; internal state:
            (is (= 1 (service/cancel combo-service ch1)))
            (is (= 0 (service/cancel combo-service ch2)))))))))
+
+(deftest it-adapts
+  (let [responses (chan)
+        make-request (fn [{:keys [id]}]
+                       (put! responses {:id id}))
+        service (service/adapter make-request
+                                 (fn [_])
+                                 responses)]
+    (test-async
+     (test-within 1000
+       (go
+         (let [ch (chan)]
+           (service/request service {} ch)
+           
+           (is (= {:id 0} (<! ch)))))))))
